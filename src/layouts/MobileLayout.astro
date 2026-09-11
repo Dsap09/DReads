@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+import BottomNav from '../components/BottomNav.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  activeTab?: 'home' | 'search' | 'library' | 'read';
+  showBottomNav?: boolean;
+}
+
+const {
+  title = 'DReads - Digital E-Book Reader',
+  description = 'Platform baca buku digital pribadi yang ringan, cepat, dan nyaman di mata.',
+  activeTab = 'home',
+  showBottomNav = true
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DReads" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content="/favicon.svg" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-slate-950">
+  
+  <!-- Main Scrollable Body Area -->
+  <main id="main-content" class={`flex-1 w-full max-w-md mx-auto ${showBottomNav ? 'pb-20' : ''}`}>
+    <slot />
+  </main>
+
+  <!-- Fixed Bottom Navigation -->
+  {showBottomNav && <BottomNav activeTab={activeTab} />}
+
+  <!-- Service Worker PWA Registration -->
+  <script is:inline>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('SW registered:', reg.scope);
+        }).catch(err => {
+          console.warn('SW registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+---
+import type { Book } from '../lib/api';
+
+interface Props {
+  book: Book;
+  isSaved?: boolean;
+}
+
+const { book, isSaved = false } = Astro.props;
+
+// Determine read or detail page
+const isGutenberg = book.source === 'gutendex';
+const gutenbergId = isGutenberg ? book.id.replace('gutenberg:', '') : null;
+const targetHref = isGutenberg ? `/read/${gutenbergId}` : `/book/${encodeURIComponent(book.id)}`;
+---
+
+<div class="group flex items-center gap-3 p-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 rounded-xl transition-all duration-200 shadow-sm hover:border-slate-700">
+  <!-- Cover Thumbnail -->
+  <a href={targetHref} class="relative flex-shrink-0 w-16 h-22 rounded-lg overflow-hidden bg-slate-800 border border-slate-700/50 shadow">
+    {book.coverSmallUrl || book.coverUrl ? (
+      <img
+        src={book.coverSmallUrl || book.coverUrl}
+        alt={`Sampul ${book.title}`}
+        loading="lazy"
+        decoding="async"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+      />
+    ) : null}
+    <div class={`absolute inset-0 flex-col items-center justify-center bg-slate-800 text-slate-500 p-1 text-center text-[10px] leading-tight ${book.coverSmallUrl || book.coverUrl ? 'hidden' : 'flex'}`}>
+      <svg class="w-6 h-6 mb-1 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+      </svg>
+      <span>Buku</span>
+    </div>
+  </a>
+
+  <!-- Book Info -->
+  <div class="flex-1 min-w-0">
+    <a href={targetHref} class="block group-hover:text-amber-400 transition-colors">
+      <h3 class="text-sm font-semibold text-slate-100 line-clamp-2 leading-snug">
+        {book.title}
+      </h3>
+    </a>
+    
+    <p class="text-xs text-slate-400 mt-1 truncate">
+      {book.author}
+    </p>
+
+    <div class="flex items-center gap-2 mt-2">
+      <!-- Source Badge -->
+      {book.source === 'gutendex' && (
+        <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Baca Langsung
+        </span>
+      )}
+      {book.source === 'openlibrary' && (
+        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          OpenLibrary
+        </span>
+      )}
+      {book.source === 'googlebooks' && (
+        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          Google Books
+        </span>
+      )}
+
+      <!-- Year -->
+      {book.firstPublishYear && book.firstPublishYear !== '-' && (
+        <span class="text-[10px] text-slate-500">
+          • {book.firstPublishYear}
+        </span>
+      )}
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex flex-col items-end gap-2 flex-shrink-0">
+    <!-- Bookmark Button -->
+    <button
+      type="button"
+      class="bookmark-btn p-2 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 touch-target transition-colors"
+      data-book={JSON.stringify(book)}
+      aria-label="Simpan ke Koleksi"
+    >
+      <svg class={`w-5 h-5 ${isSaved ? 'text-amber-500 fill-amber-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+      </svg>
+    </button>
+
+    <!-- Quick Read CTA for all books inside DReads -->
+    <a
+      href={targetHref}
+      class="text-xs px-2.5 py-1 bg-amber-500 text-slate-950 font-medium rounded-lg hover:bg-amber-400 transition-colors shadow-sm"
+    >
+      Baca
+    </a>
+  </div>
+</div>

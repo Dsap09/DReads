@@ -1,0 +1,82 @@
+---
+---
+
+<div id="reader-controls-modal" class="fixed inset-x-0 bottom-0 z-50 transform translate-y-full transition-transform duration-300 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 rounded-t-2xl shadow-2xl">
+  <div class="max-w-md mx-auto space-y-4">
+    <!-- Header Modal -->
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-amber-500">Pengaturan Tampilan Baca</h3>
+      <button id="close-controls-btn" class="p-1 text-slate-400 hover:text-slate-200" aria-label="Tutup">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Theme Selection (Comfortable for Eyes) -->
+    <div>
+      <label class="text-[11px] font-semibold text-slate-400 block mb-2">Tema Warna (Nyaman di Mata)</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          data-theme="warm"
+          class="theme-btn px-3 py-2 rounded-xl text-xs font-medium border flex flex-col items-center gap-1 bg-[#fbf8f1] text-[#2c251e] border-[#e6dacb]"
+        >
+          <span>Kertas Hangat</span>
+          <span class="text-[9px] text-[#6e6355]">Siang</span>
+        </button>
+
+        <button
+          type="button"
+          data-theme="sepia"
+          class="theme-btn px-3 py-2 rounded-xl text-xs font-medium border flex flex-col items-center gap-1 bg-[#f4ecd8] text-[#3e3323] border-[#e2d5b6]"
+        >
+          <span>Sepia Klasik</span>
+          <span class="text-[9px] text-[#6e5d44]">Redup</span>
+        </button>
+
+        <button
+          type="button"
+          data-theme="dark"
+          class="theme-btn px-3 py-2 rounded-xl text-xs font-medium border flex flex-col items-center gap-1 bg-[#0f172a] text-[#e2e8f0] border-[#334155]"
+        >
+          <span>Soft Charcoal</span>
+          <span class="text-[9px] text-[#94a3b8]">Malam</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Font Size Selection -->
+    <div>
+      <label class="text-[11px] font-semibold text-slate-400 block mb-2">Ukuran Huruf</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          data-size="sm"
+          class="font-size-btn px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl flex items-center justify-center gap-1"
+        >
+          <span class="text-xs">A</span>
+          <span>Kecil</span>
+        </button>
+
+        <button
+          type="button"
+          data-size="md"
+          class="font-size-btn px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl flex items-center justify-center gap-1"
+        >
+          <span class="text-sm">A</span>
+          <span>Sedang</span>
+        </button>
+
+        <button
+          type="button"
+          data-size="lg"
+          class="font-size-btn px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl flex items-center justify-center gap-1 font-bold"
+        >
+          <span class="text-base">A</span>
+          <span>Besar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

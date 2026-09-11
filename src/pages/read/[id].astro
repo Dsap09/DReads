@@ -1,0 +1,368 @@
+---
+import MobileLayout from '../../layouts/MobileLayout.astro';
+import ReaderControls from '../../components/ReaderControls.astro';
+import { getCleanGutenbergChapter } from '../../lib/gutenberg';
+
+const { id } = Astro.params;
+const rawId = decodeURIComponent(id || '1342');
+const url = new URL(Astro.request.url);
+const currentChapter = parseInt(url.searchParams.get('chapter') || '1', 10);
+
+const gutenbergId = rawId.replace('gutenberg:', '');
+const readerBadge = 'Gutenberg Clean Engine';
+
+let bookDetails = {
+  id: rawId,
+  title: `Buku Gutenberg #${gutenbergId}`,
+  author: 'Project Gutenberg',
+  totalChapters: 1,
+  currentChapter: 1,
+  chapterTitle: `Bab ${currentChapter}`,
+  chapterList: [] as string[],
+  contentHtml: ''
+};
+
+try {
+  // Execute text extraction and metadata fetch in parallel for maximum speed
+  const [data, metaRes] = await Promise.all([
+    getCleanGutenbergChapter(gutenbergId, currentChapter),
+    fetch(`https://gutendex.com/books/${gutenbergId}`).catch(() => null)
+  ]);
+
+  let title = bookDetails.title;
+  let author = bookDetails.author;
+
+  if (metaRes && metaRes.ok) {
+    try {
+      const metaData = await metaRes.json();
+      title = metaData.title || title;
+      author = (metaData.authors || []).map((a: any) => a.name).join(', ') || author;
+    } catch (e) {}
+  }
+
+  bookDetails = {
+    id: rawId,
+    title,
+    author,
+    totalChapters: data.totalChapters || 1,
+    currentChapter: data.currentChapter || 1,
+    chapterTitle: data.chapterTitle || `Bab ${currentChapter}`,
+    chapterList: data.chapterList || [],
+    contentHtml: data.contentHtml || ''
+  };
+} catch (e) {
+  console.error('Error fetching clean Gutenberg content:', e);
+}
+---
+
+<MobileLayout title={`${bookDetails.title} - DReads Reader`} showBottomNav={false}>
+  <!-- Floating Auto-Hide Top Header -->
+  <header id="reader-header" class="fixed top-0 inset-x-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 transition-transform duration-300">
+    <div class="max-w-md mx-auto flex items-center justify-between h-14 px-3">
+      <!-- Back button -->
+      <a href="/" class="p-2 text-slate-300 hover:text-amber-400 touch-target flex items-center gap-1 text-xs" aria-label="Kembali">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        <span>Kembali</span>
+      </a>
+
+      <!-- Title snippet & Chapter dropdown -->
+      <div class="text-center min-w-0 px-2 flex-1">
+        <h1 class="text-xs font-semibold text-slate-100 truncate">{bookDetails.title}</h1>
+        {bookDetails.totalChapters > 1 ? (
+          <select id="chapter-select" class="bg-slate-900 text-amber-400 text-[10px] py-0.5 px-1 rounded border border-slate-800 focus:outline-none focus:border-amber-500">
+            {bookDetails.chapterList.map((chTitle, idx) => (
+              <option value={idx + 1} selected={idx + 1 === bookDetails.currentChapter}>
+                {idx + 1}. {chTitle.substring(0, 25)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p class="text-[10px] text-slate-400 truncate">{bookDetails.author}</p>
+        )}
+      </div>
+
+      <!-- Action buttons: Bookmark & Settings -->
+      <div class="flex items-center gap-1">
+        <button id="reader-bookmark-btn" class="p-2 text-slate-400 hover:text-amber-400 touch-target" aria-label="Simpan Buku">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+          </svg>
+        </button>
+
+        <button id="open-settings-btn" class="p-2 text-slate-400 hover:text-amber-400 touch-target" aria-label="Pengaturan Tampilan">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Reader Canvas -->
+  <div id="reader-wrapper" class="min-h-screen pt-16 pb-24 px-4 transition-colors duration-300">
+    <div class="max-w-md mx-auto">
+      <!-- Book Header in Content -->
+      <div class="text-center py-6 border-b border-slate-700/40 mb-6">
+        <span class="text-[10px] uppercase font-bold tracking-widest text-amber-500">{readerBadge}</span>
+        <h1 class="text-xl font-bold mt-1 mb-2 leading-tight">{bookDetails.title}</h1>
+        <p class="text-sm opacity-80 mb-2">{bookDetails.author}</p>
+        
+        {bookDetails.totalChapters > 1 && (
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-semibold text-amber-400">
+            <span>Bab {bookDetails.currentChapter} dari {bookDetails.totalChapters}</span>
+          </div>
+        )}
+      </div>
+
+      <!-- Book Body (DOMPurify sanitized on client) -->
+      <div
+        id="reader-body"
+        class="reader-content font-size-md theme-warm px-1 select-text cursor-pointer"
+        data-raw-content={encodeURIComponent(bookDetails.contentHtml || '')}
+      >
+        <div class="py-12 text-center text-xs opacity-60">Memuat teks bacaan...</div>
+      </div>
+
+      <!-- Chapter Pagination Bottom Buttons -->
+      {bookDetails.totalChapters > 1 && (
+        <div class="flex items-center justify-between pt-8 pb-4 mt-8 border-t border-slate-700/40 text-xs">
+          {bookDetails.currentChapter > 1 ? (
+            <a
+              href={`/read/${encodeURIComponent(rawId)}?chapter=${bookDetails.currentChapter - 1}`}
+              class="px-4 py-2 bg-slate-900 border border-slate-800 text-amber-400 font-semibold rounded-xl hover:bg-slate-800 touch-target flex items-center gap-1 shadow"
+            >
+              ← Bab Sebelumnya
+            </a>
+          ) : (
+            <span class="px-4 py-2 text-slate-600 border border-transparent">← Bab Sebelumnya</span>
+          )}
+
+          <span class="text-slate-400 font-medium">Bab {bookDetails.currentChapter} / {bookDetails.totalChapters}</span>
+
+          {bookDetails.currentChapter < bookDetails.totalChapters ? (
+            <a
+              href={`/read/${encodeURIComponent(rawId)}?chapter=${bookDetails.currentChapter + 1}`}
+              class="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl hover:bg-amber-400 touch-target flex items-center gap-1 shadow"
+            >
+              Bab Selanjutnya →
+            </a>
+          ) : (
+            <span class="px-4 py-2 text-slate-600 border border-transparent">Bab Selanjutnya →</span>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- Floating Auto-Hide Bottom Progress Bar -->
+  <footer id="reader-footer" class="fixed bottom-0 inset-x-0 z-40 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 transition-transform duration-300 pb-[env(safe-area-inset-bottom)]">
+    <div class="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-slate-400">
+      <span id="reading-percent-text" class="font-semibold text-amber-400 min-w-[36px]">0%</span>
+
+      <!-- Reading progress slider -->
+      <div class="flex-1 bg-slate-800 h-2 rounded-full overflow-hidden">
+        <div id="reading-progress-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-150" style="width: 0%"></div>
+      </div>
+
+      <button id="scroll-top-btn" class="p-1 hover:text-slate-200" aria-label="Atas">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-2 14H5"/>
+        </svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Reader Appearance Settings Modal -->
+  <ReaderControls />
+
+  <!-- Reader Client Script (DOMPurify, Progress Tracking, Auto-Hide, LocalStorage) -->
+  <script>
+    import DOMPurify from 'dompurify';
+    import { getReaderSettings, saveReaderSettings, getReadingProgress, saveReadingProgress, isBookSaved, saveBook, removeBook } from '../../lib/storage';
+
+    const pathParts = window.location.pathname.split('/');
+    const rawId = decodeURIComponent(pathParts[pathParts.length - 1] || '');
+    const rawContentEl = document.getElementById('reader-body');
+    const headerEl = document.getElementById('reader-header');
+    const footerEl = document.getElementById('reader-footer');
+    const wrapperEl = document.getElementById('reader-wrapper');
+    const percentText = document.getElementById('reading-percent-text');
+    const progressBar = document.getElementById('reading-progress-bar');
+    const bookmarkBtn = document.getElementById('reader-bookmark-btn');
+    const chapterSelect = document.getElementById('chapter-select') as HTMLSelectElement;
+
+    let uiVisible = true;
+    let hideTimer: any = null;
+
+    // 1. Sanitize & Render Content with DOMPurify
+    if (rawContentEl) {
+      const rawHtml = decodeURIComponent(rawContentEl.getAttribute('data-raw-content') || '');
+      const cleanHtml = DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'blockquote', 'hr', 'ul', 'ol', 'li', 'span', 'div', 'table', 'tbody', 'tr', 'td', 'th', 'a'],
+        ALLOWED_ATTR: ['class', 'id', 'style', 'href', 'target']
+      });
+      rawContentEl.innerHTML = cleanHtml;
+    }
+
+    // 2. Chapter Selector Change Handler
+    if (chapterSelect) {
+      chapterSelect.addEventListener('change', () => {
+        const targetChapter = chapterSelect.value;
+        window.location.href = `/read/${encodeURIComponent(rawId)}?chapter=${targetChapter}`;
+      });
+    }
+
+    // 3. Restore Theme & Font Size Settings
+    const settings = getReaderSettings();
+    applySettings(settings.theme, settings.fontSize);
+
+    function applySettings(theme: string, fontSize: string) {
+      if (!rawContentEl || !wrapperEl) return;
+      
+      rawContentEl.classList.remove('theme-warm', 'theme-sepia', 'theme-dark');
+      rawContentEl.classList.add(`theme-${theme}`);
+
+      wrapperEl.classList.remove('bg-[#fbf8f1]', 'bg-[#f4ecd8]', 'bg-[#0f172a]', 'text-[#2c251e]', 'text-[#3e3323]', 'text-[#e2e8f0]');
+      if (theme === 'warm') {
+        wrapperEl.classList.add('bg-[#fbf8f1]', 'text-[#2c251e]');
+      } else if (theme === 'sepia') {
+        wrapperEl.classList.add('bg-[#f4ecd8]', 'text-[#3e3323]');
+      } else {
+        wrapperEl.classList.add('bg-[#0f172a]', 'text-[#e2e8f0]');
+      }
+
+      rawContentEl.classList.remove('font-size-sm', 'font-size-md', 'font-size-lg');
+      rawContentEl.classList.add(`font-size-${fontSize}`);
+    }
+
+    // 4. Auto-Hide Header & Footer UI on Inactivity / Tap Center
+    function resetHideTimer() {
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        setUIVisibility(false);
+      }, 4000);
+    }
+
+    function setUIVisibility(visible: boolean) {
+      uiVisible = visible;
+      if (headerEl && footerEl) {
+        if (visible) {
+          headerEl.style.transform = 'translateY(0)';
+          footerEl.style.transform = 'translateY(0)';
+          resetHideTimer();
+        } else {
+          headerEl.style.transform = 'translateY(-100%)';
+          footerEl.style.transform = 'translateY(100%)';
+        }
+      }
+    }
+
+    // Toggle UI on tapping reader content
+    rawContentEl?.addEventListener('click', () => {
+      setUIVisibility(!uiVisible);
+    });
+
+    // Reset hide timer on user interaction
+    window.addEventListener('scroll', () => {
+      updateProgress();
+      if (!uiVisible) setUIVisibility(true);
+      resetHideTimer();
+    });
+
+    resetHideTimer();
+
+    // 5. Progress Scroll Calculation & Restoration
+    function updateProgress() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollHeight <= 0) return;
+
+      const percent = Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)));
+      if (percentText) percentText.textContent = `${percent}%`;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+
+      saveReadingProgress(rawId, percent, scrollTop);
+    }
+
+    // Restore position on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = getReadingProgress(rawId);
+      if (saved.scrollPos > 0) {
+        setTimeout(() => {
+          window.scrollTo({ top: saved.scrollPos, behavior: 'smooth' });
+        }, 300);
+      }
+    });
+
+    // Scroll top button
+    document.getElementById('scroll-top-btn')?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // 6. Settings Modal Drawer Logic
+    const controlsModal = document.getElementById('reader-controls-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-controls-btn');
+
+    openSettingsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (controlsModal) controlsModal.style.transform = 'translateY(0)';
+    });
+
+    closeSettingsBtn?.addEventListener('click', () => {
+      if (controlsModal) controlsModal.style.transform = 'translateY(100%)';
+    });
+
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme') || 'warm';
+        const current = getReaderSettings();
+        saveReaderSettings({ theme: theme as any });
+        applySettings(theme, current.fontSize);
+      });
+    });
+
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fontSize = btn.getAttribute('data-size') || 'md';
+        const current = getReaderSettings();
+        saveReaderSettings({ fontSize: fontSize as any });
+        applySettings(current.theme, fontSize);
+      });
+    });
+
+    // 7. Bookmark Button Handler
+    function updateBookmarkIcon() {
+      const svg = bookmarkBtn?.querySelector('svg');
+      if (isBookSaved(rawId)) {
+        svg?.classList.add('text-amber-500', 'fill-amber-500');
+      } else {
+        svg?.classList.remove('text-amber-500', 'fill-amber-500');
+      }
+    }
+
+    bookmarkBtn?.addEventListener('click', () => {
+      const title = document.querySelector('h1')?.textContent || 'Buku';
+      const author = document.querySelector('p')?.textContent || 'Penulis';
+
+      if (isBookSaved(rawId)) {
+        removeBook(rawId);
+      } else {
+        saveBook({
+          id: rawId,
+          title,
+          author,
+          coverUrl: '',
+          coverSmallUrl: '',
+          source: 'gutendex'
+        });
+      }
+      updateBookmarkIcon();
+    });
+
+    updateBookmarkIcon();
+  </script>
+</MobileLayout>

@@ -1,0 +1,23 @@
+---
+import MobileLayout from '../layouts/MobileLayout.astro';
+---
+
+<MobileLayout title="Mode Offline - DReads" activeTab="home">
+  <div class="px-4 py-16 text-center space-y-4">
+    <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-12.728 0a9 9 0 010-12.728m10.607 2.121a6 6 0 010 8.485m-8.485 0a6 6 0 010-8.485m5.657 2.121a2 2 0 010 2.828m-2.828 0a2 2 0 010-2.828"/>
+      </svg>
+    </div>
+    <h1 class="text-base font-bold text-slate-100">Anda Sedang Offline</h1>
+    <p class="text-xs text-slate-400 max-w-xs mx-auto">
+      Koneksi internet Anda terputus. Namun Anda dapat mengakses buku yang telah Anda buka sebelumnya dari Koleksi Saya.
+    </p>
+
+    <div class="pt-4">
+      <a href="/library" class="inline-block px-5 py-2.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow">
+        Buka Koleksi Buku Tersimpan
+      </a>
+    </div>
+  </div>
+</MobileLayout>

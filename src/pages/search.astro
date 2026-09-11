@@ -1,0 +1,161 @@
+---
+import MobileLayout from '../layouts/MobileLayout.astro';
+import SearchBar from '../components/SearchBar.astro';
+import BookListItem from '../components/BookListItem.astro';
+import SkeletonLoader from '../components/SkeletonLoader.astro';
+import type { Book } from '../lib/api';
+
+const url = new URL(Astro.request.url);
+const query = url.searchParams.get('q') || '';
+const category = url.searchParams.get('category') || '';
+const source = url.searchParams.get('source') || 'all';
+const page = parseInt(url.searchParams.get('page') || '1', 10);
+
+const activeSearchTerm = query || category;
+
+let books: Book[] = [];
+let total = 0;
+let errorMessage = '';
+
+if (activeSearchTerm && activeSearchTerm.trim() !== '') {
+  try {
+    const origin = url.origin;
+    const apiRes = await fetch(`${origin}/api/search?q=${encodeURIComponent(activeSearchTerm)}&source=${source}&page=${page}`);
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      books = data.books || [];
+      total = data.total || 0;
+    } else {
+      errorMessage = 'Gagal memuat hasil pencarian dari API.';
+    }
+  } catch (err: any) {
+    console.error('Search fetch error:', err);
+    errorMessage = 'Terjadi masalah jaringan atau koneksi.';
+  }
+}
+---
+
+<MobileLayout title={activeSearchTerm ? `Cari "${activeSearchTerm}" - DReads` : 'Pencarian Buku - DReads'} activeTab="search">
+  <!-- Sticky Search Header -->
+  <SearchBar initialQuery={query} initialSource={source} />
+
+  <!-- Main Search Container -->
+  <div class="px-4 py-4 space-y-4">
+    {activeSearchTerm ? (
+      <>
+        <!-- Search Info Meta -->
+        <div class="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2 truncate">
+            {category && !query ? (
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-medium">
+                <span>Kategori: {category}</span>
+                <a href={`/search?source=${source}`} class="hover:text-amber-200">×</a>
+              </span>
+            ) : (
+              <span>Hasil untuk <strong class="text-slate-200">"{query}"</strong></span>
+            )}
+          </div>
+          <span class="shrink-0">{books.length} dari {total} buku</span>
+        </div>
+
+        {errorMessage ? (
+          <div class="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-center space-y-2">
+            <p class="text-xs text-rose-300">{errorMessage}</p>
+            <a href={`/search?q=${encodeURIComponent(query)}&source=${source}`} class="inline-block text-xs px-3 py-1.5 bg-rose-500 text-slate-950 font-medium rounded-lg">Coba Lagi</a>
+          </div>
+        ) : books.length > 0 ? (
+          <div class="space-y-3">
+            {books.map((book) => (
+              <BookListItem book={book} />
+            ))}
+          </div>
+        ) : (
+          <div class="p-8 text-center space-y-3 bg-slate-900/40 rounded-2xl border border-slate-800/60 my-6">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-800 flex items-center justify-center text-amber-500">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-200">Tidak ada buku ditemukan</h3>
+            <p class="text-xs text-slate-400 max-w-xs mx-auto">
+              Coba kata kunci lain atau pilih tab sumber "Gutendex" untuk mencari buku domain publik gratis.
+            </p>
+          </div>
+        )}
+
+        <!-- Pagination Controls -->
+        {books.length > 0 && (
+          <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+            {page > 1 ? (
+              <a
+                href={`/search?${query ? `q=${encodeURIComponent(query)}` : `category=${encodeURIComponent(category)}`}&source=${source}&page=${page - 1}`}
+                class="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 hover:bg-slate-800 touch-target flex items-center gap-1"
+              >
+                ← Sebelumnya
+              </a>
+            ) : (
+              <span class="px-4 py-2 text-xs text-slate-600 border border-transparent">← Sebelumnya</span>
+            )}
+
+            <span class="text-xs text-slate-400">Halaman {page}</span>
+
+            {books.length >= 10 ? (
+              <a
+                href={`/search?${query ? `q=${encodeURIComponent(query)}` : `category=${encodeURIComponent(category)}`}&source=${source}&page=${page + 1}`}
+                class="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 hover:bg-slate-800 touch-target flex items-center gap-1"
+              >
+                Selanjutnya →
+              </a>
+            ) : (
+              <span class="px-4 py-2 text-xs text-slate-600 border border-transparent">Selanjutnya →</span>
+            )}
+          </div>
+        )}
+      </>
+    ) : (
+      <div class="py-12 px-4 text-center space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-slate-100">Cari Jutaan Buku Digital</h2>
+          <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+            Ketik judul buku, nama penulis, atau topik pada kotak pencarian di atas.
+          </p>
+        </div>
+
+        <div class="pt-4 max-w-xs mx-auto">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Contoh Pencarian Populer</p>
+          <div class="flex flex-wrap justify-center gap-1.5 text-xs">
+            <a href="/search?q=Sherlock+Holmes&source=gutendex" class="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 hover:border-amber-500/50">Sherlock Holmes</a>
+            <a href="/search?q=Pride+and+Prejudice&source=gutendex" class="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 hover:border-amber-500/50">Pride and Prejudice</a>
+            <a href="/search?q=Indonesia&source=openlibrary" class="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 hover:border-amber-500/50">Buku Indonesia</a>
+            <a href="/search?q=Frankenstein&source=gutendex" class="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 hover:border-amber-500/50">Frankenstein</a>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <script>
+    document.querySelectorAll('.bookmark-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bookData = JSON.parse(btn.getAttribute('data-book') || '{}');
+        import('../lib/storage').then(({ isBookSaved, saveBook, removeBook }) => {
+          const svg = btn.querySelector('svg');
+          if (isBookSaved(bookData.id)) {
+            removeBook(bookData.id);
+            if (svg) svg.classList.remove('text-amber-500', 'fill-amber-500');
+          } else {
+            saveBook(bookData);
+            if (svg) svg.classList.add('text-amber-500', 'fill-amber-500');
+          }
+        });
+      });
+    });
+  </script>
+</MobileLayout>
